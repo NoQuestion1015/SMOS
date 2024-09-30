@@ -26,6 +26,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        sudo apt install libasound-dev portaudio19-dev libportaudio2 libportaudiocpp0 ffmpeg libav-tools
         pip install flake8 pytest gigachain gigachain-community duckduckgo-search pyfiglet gTTS SpeechRecognition pyaudio playsound
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Lint with flake8
