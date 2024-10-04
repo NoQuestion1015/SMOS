@@ -8,6 +8,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 from gtts import gTTS
 import playsound
 import threading
+import os
 
 # Инициализация распознавателя
 recognizer = sr.Recognizer()
@@ -25,6 +26,10 @@ pause_time = 30  # Таймер на 30 секунд
 bot_active = False
 timer = None
 
+# Файл приоритета распознавания речи
+priority_file = '/home/noquestion/Рабочий стол/SMOS GIT/SMOS/config/recognition_perm.txt'
+ai_priority_value = 'ai'
+
 def start_timer():
     global timer
     if timer:
@@ -41,6 +46,14 @@ def set_bot_pause():
     global bot_active
     bot_active = False
     print("Бот снова на паузе")
+
+def check_priority():
+    """Проверяет, находится ли приоритет распознавания речи у ИИ."""
+    if os.path.exists(priority_file):
+        with open(priority_file, 'r') as file:
+            priority = file.read().strip()
+            return priority == ai_priority_value
+    return False
 
 def recognize_speech():
     with sr.Microphone() as source:
@@ -87,10 +100,22 @@ agent_executor = AgentExecutor(
 )
 
 chat_history = []
+priority_message_printed = False  # Флаг для контроля вывода сообщения
 
 def main():
-    global bot_active
+    global bot_active, priority_message_printed
     while True:
+        # Проверяем приоритет перед началом распознавания речи
+        if not check_priority():
+            if not priority_message_printed:
+                print("Распознавание речи отключено: приоритет не у ИИ.")
+                priority_message_printed = True
+            continue  # Пропускаем итерацию, если приоритет не у ИИ
+        else:
+            if priority_message_printed:
+                print("Приоритет вернулся к ИИ, продолжаем распознавание.")
+                priority_message_printed = False
+
         text = recognize_speech()
         if text:
             # Проверяем на команду выключения
