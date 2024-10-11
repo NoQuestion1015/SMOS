@@ -27,7 +27,7 @@ bot_active = False
 timer = None
 
 # Файл приоритета распознавания речи
-priority_file = '/home/noquestion/Рабочий стол/SMOS GIT/SMOS/config/recognition_perm.txt'
+priority_file = 'config/recognition_perm.txt'
 ai_priority_value = 'ai'
 
 def start_timer():
@@ -89,7 +89,7 @@ def synthesize_speech(text: str):
 search_tool = DuckDuckGoSearchRun()
 new_tools = [search_tool, draw_banner]
 
-giga = GigaChat(credentials="MzZkZmNkMWUtMDQyNC00YzVlLWI1ZjUtNTAwNjI0YzJjOTg3OjVmZDM3NWE5LTUwNTYtNDNjNi05MGQ1LWY3OWM3MjdhZDU2Yg==", scope="GIGACHAT_API_PERS", model="GigaChat", verify_ssl_certs=False)
+giga = GigaChat(credentials="MzZkZmNkMWUtMDQyNC00YzVlLWI1ZjUtNTAwNjI0YzJjOTg3OmY0NDY1NWVkLWUyODYtNDk1Yy1hOGM1LWJkODhmZjhlZDFjMQ==", scope="GIGACHAT_API_PERS", model="GigaChat", verify_ssl_certs=False)
 
 agent = create_gigachat_functions_agent(giga, new_tools)
 
