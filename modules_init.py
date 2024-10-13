@@ -4,7 +4,7 @@ import sqlite3
 # Путь к базам данных
 ACTIVE_DB_PATH = "modules/active_modules.db"
 ALL_DB_PATH = "modules/all_modules.db"
-COMMANDS_FILE = "modules/local_command.txt"
+COMMANDS_FILE = "modules/active_commands.txt"
 
 def initialize_database():
     # Инициализация базы данных all_modules.db
@@ -18,7 +18,6 @@ def initialize_database():
             description TEXT,
             moduletype TEXT,
             modulenamefolder TEXT
-            path TEXT
         )
     ''')
     conn.commit()
@@ -39,6 +38,15 @@ def initialize_database():
     ''')
     conn.commit()
     conn.close()
+
+def clear_active_modules_database():
+    # Очищаем базу данных active_modules.db
+    conn = sqlite3.connect(ACTIVE_DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM active_modules")
+    conn.commit()
+    conn.close()
+    print("База данных active_modules.db очищена.")
 
 def create_active_commands_file():
     # Создание файла active_commands.txt
@@ -113,6 +121,7 @@ def activate_modules():
 
 def main():
     initialize_database()
+    clear_active_modules_database()  # Очищаем базу данных перед активацией модулей
     create_active_commands_file()
     activate_modules()
 

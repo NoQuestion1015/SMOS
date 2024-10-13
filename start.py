@@ -1,6 +1,7 @@
 import subprocess
 import os
 from playsound import playsound
+import time
 
 # Путь к папке с конфигурационными файлами
 config_folder = "config"
@@ -28,7 +29,7 @@ folders_to_create = [
 
 files_to_create = {
     os.path.join(config_folder, "recognition_perm.txt"): "ai",  # Изначальное содержимое
-    os.path.join(modules_folder, "config_module.txt"): "test",  # Файл без начального содержимого
+    os.path.join(config_folder, "needtoai.txt"): None,# Файл без начального содержимого
 }
 
 # Функция для создания папок
@@ -56,10 +57,21 @@ playsound(os.path.join(sound_folder, "systemstarted.mp3"))
 # Путь к скрипту основного ИИ
 mainai = "mainai.py"
 systemos = "systemos.py"
+moduleadd = "modules_add.py"
+moduleinit = "modules_init.py"
 
 # Запуск основного ИИ в IDLE
-subprocess.Popen(['idle', '-r', mainai])
-subprocess.Popen(['idle', '-r', systemos])
+mainai_start = subprocess.Popen(['idle', '-r', mainai])
+moduleadd_start = subprocess.Popen(['idle', '-r', moduleadd])
+time.sleep(10)
+moduleinit_start = subprocess.Popen(['idle', '-r', moduleinit])
+time.sleep(5)
+systemos_start = subprocess.Popen(['idle', '-r', systemos])
+
+# Закрытие отработанных модулей
+time.sleep(5)
+moduleadd_start.terminate()
+moduleinit_start.terminate()
 
 # Сообщение о запуске основного ИИ
 print("Основной ИИ запущен.")

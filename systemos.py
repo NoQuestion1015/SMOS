@@ -6,15 +6,14 @@ import speech_recognition as sr
 # Путь к базе данных и файлам
 ACTIVE_DB_PATH = "modules/active_modules.db"
 message_file = "modules/local_message.txt"
+system_message_file = "config/messagetosystem.txt"
+config_file = "config/recognition_perm.txt"
 
 # Инициализация распознавателя
 recognizer = sr.Recognizer()
 recognizer.dynamic_energy_threshold = False
 recognizer.energy_threshold = 300
 recognizer.pause_threshold = 1
-
-# Путь к файлу конфигурации
-config_file = "config/recognition_perm.txt"
 
 # Функция для проверки приоритета
 def check_recognition_priority():
@@ -61,6 +60,16 @@ def write_message(command):
     except Exception as e:
         print(f"Ошибка при записи команды: {e}")
 
+# Функция для проверки изменений в messagetosystem.txt
+def check_system_message_change(last_message):
+    try:
+        with open(system_message_file, "r") as file:
+            current_message = file.read().strip()
+            return current_message, current_message != last_message
+    except FileNotFoundError:
+        print(f"Файл {system_message_file} не найден.")
+        return None, False
+
 # Функция для запуска модуля
 def launch_module(path_to_file):
     try:
@@ -69,9 +78,19 @@ def launch_module(path_to_file):
     except Exception as e:
         print(f"Ошибка при запуске модуля: {e}")
 
+# Функция для сброса приоритета на AI
+def reset_priority_to_ai():
+    try:
+        with open(config_file, "w") as file:
+            file.write("ai")
+        print(f"Приоритет сброшен на 'ai' в {config_file}")
+    except Exception as e:
+        print(f"Ошибка при сбросе приоритета: {e}")
+
 def main():
     last_priority = None  # Храним последнее значение приоритета
-    
+    last_system_message = ""  # Храним последнее сообщение из messagetosystem.txt
+
     # Загрузка активных модулей и команд
     active_modules = load_active_modules()
     commands_dict = {}  # Словарь для команд и путей к модулям
@@ -89,10 +108,28 @@ def main():
 
         if current_priority == "system":
             if last_priority != "system":
-                print("Приоритет системы, начинаем распознавание речи.")
+                print("Приоритет системы, начинаем проверку файла messagetosystem.txt.")
                 last_priority = "system"
 
-            # Продолжаем распознавать, пока приоритет у системы
+            # Проверка на изменения в файле messagetosystem.txt
+            current_system_message, changed = check_system_message_change(last_system_message)
+            if changed:
+                last_system_message = current_system_message
+                print(f"Найдено новое сообщение: {current_system_message}")
+
+                # Проверка, если команда распознана
+                command_lower = current_system_message.lower()
+                if command_lower in commands_dict:
+                    print(f"Распознана команда: {command_lower}")
+                    write_message(command_lower)  # Запись команды в local_message.txt
+                    path_to_file = commands_dict[command_lower]
+                    launch_module(path_to_file)  # Запуск модуля
+                else:
+                    print("Команда не найдена. Сбрасываем приоритет на AI.")
+                    reset_priority_to_ai()  # Сбрасываем приоритет на AI
+                    continue  # Возвращаемся к ожиданию
+
+            # Запускаем дальнейшее распознавание речи
             text = recognize_speech()
             if text:
                 text_lower = text.lower()
@@ -103,6 +140,9 @@ def main():
                     write_message(text_lower)  # Запись команды в local_message.txt
                     path_to_file = commands_dict[text_lower]
                     launch_module(path_to_file)  # Запуск модуля
+                else:
+                    print("Команда не найдена. Сбрасываем приоритет на AI.")
+                    reset_priority_to_ai()  # Сбрасываем приоритет на AI
 
                     if "выключить программу распознавания" in text_lower:
                         print("Команда для завершения распознавания получена. Выключение программы.")

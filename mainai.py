@@ -18,8 +18,9 @@ recognizer.operation_timeout = 5
 recognizer.dynamic_energy_adjustment_damping = 0.2
 recognizer.pause_threshold = 1
 
-# Кодовое слово для активации бота
+# Кодовые слова для активации и переключения приоритета
 activation_keywords = ["смарт", "smart"]
+system_keyword = "система"
 
 # Таймер паузы бота
 pause_time = 30  # Таймер на 30 секунд
@@ -71,6 +72,26 @@ def recognize_speech():
         print(f"Ошибка сервиса: {e}")
         return None
 
+def check_for_system_keyword(text):
+    """Проверяет, начинается ли запрос с кодового слова 'система' и записывает запрос системы в файл."""
+    if text.startswith(system_keyword):
+        # Отделяем команду, которая идёт после слова "система"
+        system_command = text[len(system_keyword):].strip()
+
+        # Сменяем приоритет на system
+        with open(priority_file, 'w') as file:
+            file.write("system")
+        print("Приоритет сменён на system.")
+
+        # Записываем команду системы в файл messagetosystem.txt
+        system_message_file = 'config/messagetosystem.txt'
+        with open(system_message_file, 'w') as file:
+            file.write(system_command)
+        print(f"Запрос системы записан в {system_message_file}: {system_command}")
+        
+        return True
+    return False
+
 @tool
 def draw_banner(number: str) -> str:
     """Рисует баннер с текстом результатов кода в виде Ascii-графики"""
@@ -102,6 +123,29 @@ agent_executor = AgentExecutor(
 chat_history = []
 priority_message_printed = False  # Флаг для контроля вывода сообщения
 
+def handle_request(text):
+    start_timer()  # Сбрасываем таймер при каждом новом запросе
+    print(f"Пользователь: {text}")
+    
+    if check_for_system_keyword(text):
+        synthesize_speech("Приоритет сменён на системные команды.")
+        return  # Не отправляем запрос ИИ, если приоритет сменился на system
+
+    result = agent_executor.invoke(
+        {
+            "chat_history": chat_history,
+            "input": text,
+        }
+    )
+    response = result["output"]
+    chat_history.append(HumanMessage(content=text))
+    chat_history.append(AIMessage(content=response))
+    
+    print(f"Агент: {response}")
+    
+    # Озвучивание ответа бота
+    synthesize_speech(response)
+
 def main():
     global bot_active, priority_message_printed
     while True:
@@ -123,7 +167,11 @@ def main():
                 print("Команда для завершения распознавания получена. Выключение программы.")
                 break
 
-            # Если бот не активен, ждем кодового слова
+            # Проверяем на кодовое слово 'система'
+            if check_for_system_keyword(text):
+                continue  # Пропускаем дальнейшую обработку, если найдено кодовое слово
+
+            # Если бот не активен, ждем кодового слова активации
             if not bot_active:
                 if any(keyword in text for keyword in activation_keywords):
                     bot_active = True
@@ -145,24 +193,6 @@ def main():
                     start_timer()  # Запускаем таймер на 30 секунд
             else:
                 handle_request(text)
-
-def handle_request(text):
-    start_timer()  # Сбрасываем таймер при каждом новом запросе
-    print(f"Пользователь: {text}")
-    result = agent_executor.invoke(
-        {
-            "chat_history": chat_history,
-            "input": text,
-        }
-    )
-    response = result["output"]
-    chat_history.append(HumanMessage(content=text))
-    chat_history.append(AIMessage(content=response))
-    
-    print(f"Агент: {response}")
-    
-    # Озвучивание ответа бота
-    synthesize_speech(response)
 
 if __name__ == "__main__":
     main()
