@@ -91,14 +91,14 @@ def analyze_module_with_giga(module_code, query):
         messages=[
             Messages(
                 role=MessagesRole.SYSTEM,
-                content="Ты являешься терминалом. " + query
+                content="Ты являешься управляющим добавления модулей. " + query
             )
         ],
         temperature=0.1,
         max_tokens=200,
     )
 
-    with GigaChat(credentials="MzZkZmNkMWUtMDQyNC00YzVlLWI1ZjUtNTAwNjI0YzJjOTg3OmY0NDY1NWVkLWUyODYtNDk1Yy1hOGM1LWJkODhmZjhlZDFjMQ==", verify_ssl_certs=False) as giga:
+    with GigaChat(credentials="ODZjNDQ0ZjEtNjYwYS00NzUzLTlkNjgtYjVjZTk2ZTRjYWQzOmFkMzE3MDAwLWI5ZmItNGJkYi1iNjNhLTMwYzNjNWRjYmM0MA==", verify_ssl_certs=False) as giga:
         payload.messages.append(Messages(role=MessagesRole.USER, content=module_code))
         response = giga.chat(payload)
         return response.choices[0].message.content if response.choices else None
@@ -140,12 +140,12 @@ if new_modules:
 
         if description:
             # 2. Генерация названия модуля
-            name_query = f"Опиши модуль: {description}. Придумай название для него, без лишних слов."
+            name_query = f"Опиши модуль: {description}. Придумай название для него, без лишних слов. Придумай название для него, без лишних слов.(на русском)"
             module_name = analyze_module_with_giga(module_code, name_query)
 
             if module_name:
                 # 3. Генерация команды для запуска модуля
-                command_query = f"На основе названия '{module_name}' и описания '{description}', придумай команду для запуска модуля, без лишних слов."
+                command_query = f"На основе названия '{module_name}' и описания '{description}',  придумай команду для запуска модуля, команда должна быть простой и на русском языке, по типу открой бразуер или открой графический редактор, создай напоминание и так далее, без лишних слов."
                 command = analyze_module_with_giga(module_code, command_query)
 
                 if command:

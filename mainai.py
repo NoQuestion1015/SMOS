@@ -110,7 +110,7 @@ def synthesize_speech(text: str):
 search_tool = DuckDuckGoSearchRun()
 new_tools = [search_tool, draw_banner]
 
-giga = GigaChat(credentials="MzZkZmNkMWUtMDQyNC00YzVlLWI1ZjUtNTAwNjI0YzJjOTg3OmY0NDY1NWVkLWUyODYtNDk1Yy1hOGM1LWJkODhmZjhlZDFjMQ==", scope="GIGACHAT_API_PERS", model="GigaChat", verify_ssl_certs=False)
+giga = GigaChat(credentials="ODZjNDQ0ZjEtNjYwYS00NzUzLTlkNjgtYjVjZTk2ZTRjYWQzOmFkMzE3MDAwLWI5ZmItNGJkYi1iNjNhLTMwYzNjNWRjYmM0MA==", scope="GIGACHAT_API_PERS", model="GigaChat", verify_ssl_certs=False)
 
 agent = create_gigachat_functions_agent(giga, new_tools)
 

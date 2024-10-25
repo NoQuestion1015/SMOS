@@ -1,22 +1,19 @@
 import subprocess
 import os
-from playsound import playsound
 import time
+from playsound import playsound
+import signal
 
 # Путь к папке с конфигурационными файлами
 config_folder = "config"
-
-# Путь к папке с аудиофайлами
 sound_folder = "sound"
-
 modules_folder = "modules"
-
 system_modules_folder = "modules/system_modules"
-
 user_modules_folder = "modules/user_modules"
 
-# Файлы ключа распознавания речи
+# Файлы ключа распознавания речи и файла состояния
 recognition_file = os.path.join(config_folder, "recognition_perm.txt")
+cont_start_key_file = os.path.join(config_folder, "cont_start_key.txt")
 
 # Список папок и файлов для создания
 folders_to_create = [
@@ -28,8 +25,8 @@ folders_to_create = [
 ]
 
 files_to_create = {
-    os.path.join(config_folder, "recognition_perm.txt"): "ai",  # Изначальное содержимое
-    os.path.join(config_folder, "needtoai.txt"): None,# Файл без начального содержимого
+    recognition_file: "ai",
+    cont_start_key_file: "False",  # Начальное состояние, которое можно изменить по мере необходимости
 }
 
 # Функция для создания папок
@@ -54,24 +51,53 @@ create_files(files_to_create)
 playsound(os.path.join(sound_folder, "systemstartedsound.mp3"))
 playsound(os.path.join(sound_folder, "systemstarted.mp3"))
 
-# Путь к скрипту основного ИИ
+# Путь к скриптам
 mainai = "mainai.py"
 systemos = "systemos.py"
 moduleadd = "modules_add.py"
 moduleinit = "modules_init.py"
+updateproject = "updater.py"
 
-# Запуск основного ИИ в IDLE
-mainai_start = subprocess.Popen(['idle', '-r', mainai])
-moduleadd_start = subprocess.Popen(['idle', '-r', moduleadd])
-time.sleep(10)
-moduleinit_start = subprocess.Popen(['idle', '-r', moduleinit])
-time.sleep(5)
-systemos_start = subprocess.Popen(['idle', '-r', systemos])
+# Запуск скрипта обновления проекта
+updateproject_start = subprocess.Popen(['idle', '-r', updateproject])
 
-# Закрытие отработанных модулей
-time.sleep(5)
-moduleadd_start.terminate()
-moduleinit_start.terminate()
+# Функция для проверки файла cont_start_key.txt
+def check_start_key():
+    with open(cont_start_key_file, 'r') as f:
+        return f.read().strip()
 
-# Сообщение о запуске основного ИИ
-print("Основной ИИ запущен.")
+# Функция для завершения процесса IDLE
+def kill_idle_process():
+    # Находим ID процесса IDLE, запущенного для этого скрипта
+    parent_pid = os.getppid()  # Получаем ID родительского процесса
+    os.kill(parent_pid, signal.SIGKILL)  # Убиваем процесс IDLE
+
+# Цикл проверки файла на ключ запуска
+while True:
+    key = check_start_key()
+    
+    if key == "True":
+        print("Ключ True обнаружен, продолжаем запуск...")
+        
+        # Запуск остальных скриптов
+        moduleadd_start = subprocess.Popen(['idle', '-r', moduleadd])
+        time.sleep(10)
+        moduleinit_start = subprocess.Popen(['idle', '-r', moduleinit])
+        time.sleep(5)
+        systemos_start = subprocess.Popen(['idle', '-r', systemos])
+        mainai_start = subprocess.Popen(['idle', '-r', mainai])
+
+        # Закрытие отработанных модулей
+        time.sleep(5)
+        moduleadd_start.terminate()
+        moduleinit_start.terminate()
+        
+        print("Основной ИИ запущен.")
+        break  # Выходим из цикла, так как работа завершена
+    
+    elif key == "False":
+        print("Ключ False обнаружен, завершаем работу.")
+        kill_idle_process()  # Завершаем процесс IDLE
+        break  # Выходим из цикла, так как процесс завершен
+
+    time.sleep(1)  # Задержка между проверками файла состояния
