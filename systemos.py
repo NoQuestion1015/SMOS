@@ -52,13 +52,13 @@ def load_active_modules():
     return modules
 
 # Функция для записи команды в файл local_message.txt
-def write_message(command):
+def write_message(message):
     try:
         with open(message_file, "w") as file:
-            file.write(command)
-        print(f"Команда '{command}' записана в {message_file}")
+            file.write(message)
+        print(f"Сообщение '{message}' записано в {message_file}")
     except Exception as e:
-        print(f"Ошибка при записи команды: {e}")
+        print(f"Ошибка при записи сообщения: {e}")
 
 # Функция для проверки изменений в messagetosystem.txt
 def check_system_message_change(last_message):
@@ -88,6 +88,14 @@ def reset_priority_to_ai():
         print(f"Ошибка при сбросе приоритета: {e}")
 
 def main():
+    # Очищаем файл messagetosystem.txt при запуске программы
+    try:
+        with open(system_message_file, "w") as file:
+            file.write("")  # Очищаем содержимое
+        print(f"Файл {system_message_file} успешно очищен.")
+    except Exception as e:
+        print(f"Ошибка при очистке {system_message_file}: {e}")
+
     last_priority = None  # Храним последнее значение приоритета
     last_system_message = ""  # Храним последнее сообщение из messagetosystem.txt
 
@@ -104,49 +112,43 @@ def main():
         print(f"Модуль: {modulename}, Команды: {commands}")
 
     while True:
+        # Проверка текущего приоритета
         current_priority = check_recognition_priority()
 
         if current_priority == "system":
-            if last_priority != "system":
-                print("Приоритет системы, начинаем проверку файла messagetosystem.txt.")
-                last_priority = "system"
+            print("Приоритет системы, начинаем проверку файла messagetosystem.txt.")
 
-            # Проверка на изменения в файле messagetosystem.txt
-            current_system_message, changed = check_system_message_change(last_system_message)
+            # Проверка изменения файла messagetosystem.txt
+            system_message, changed = check_system_message_change(last_system_message)
             if changed:
-                last_system_message = current_system_message
-                print(f"Найдено новое сообщение: {current_system_message}")
+                print(f"Найдено новое сообщение: {system_message}")
+                last_system_message = system_message  # Обновляем последнее сообщение
 
-                # Проверка, если команда распознана
-                command_lower = current_system_message.lower()
-                if command_lower in commands_dict:
-                    print(f"Распознана команда: {command_lower}")
-                    write_message(command_lower)  # Запись команды в local_message.txt
-                    path_to_file = commands_dict[command_lower]
-                    launch_module(path_to_file)  # Запуск модуля
+                # Проверка, содержит ли сообщение команду
+                for command, path_to_file in commands_dict.items():
+                    if command in system_message.lower():
+                        print(f"Команда '{command}' найдена в сообщении.")
+                        write_message(system_message)  # Записываем всю команду в local_message.txt
+                        launch_module(path_to_file)    # Запуск модуля
+                        break
                 else:
-                    print("Команда не найдена. Сбрасываем приоритет на AI.")
-                    reset_priority_to_ai()  # Сбрасываем приоритет на AI
-                    continue  # Возвращаемся к ожиданию
+                    print("Команда не найдена. Переключение на ИИ.")
+                    reset_priority_to_ai()
+                    continue
 
-            # Запускаем дальнейшее распознавание речи
+            # Запуск распознавания речи
+            print("Скажите что-нибудь...")
             text = recognize_speech()
             if text:
-                text_lower = text.lower()
-
-                # Проверка, если команда распознана
-                if text_lower in commands_dict:
-                    print(f"Распознана команда: {text_lower}")
-                    write_message(text_lower)  # Запись команды в local_message.txt
-                    path_to_file = commands_dict[text_lower]
-                    launch_module(path_to_file)  # Запуск модуля
-                else:
-                    print("Команда не найдена. Сбрасываем приоритет на AI.")
-                    reset_priority_to_ai()  # Сбрасываем приоритет на AI
-
-                    if "выключить программу распознавания" in text_lower:
-                        print("Команда для завершения распознавания получена. Выключение программы.")
+                for command, path_to_file in commands_dict.items():
+                    if command in text.lower():
+                        print(f"Команда '{command}' найдена в распознанной речи.")
+                        write_message(text)  # Записываем всю команду в local_message.txt
+                        launch_module(path_to_file)    # Запуск модуля
                         break
+                else:
+                    print("Команда не найдена. Переключение на ИИ.")
+                    reset_priority_to_ai()
 
         elif current_priority != "system" and last_priority != current_priority:
             print("Приоритет у ИИ. Ожидание переключения на систему...")

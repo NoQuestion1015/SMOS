@@ -1,6 +1,5 @@
 import psutil
 import os
-import signal
 
 # Функция для поиска корневой папки проекта
 def find_project_root(start_path):
@@ -31,12 +30,6 @@ def terminate_idle_processes(target_files):
                         break
         except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
             print(f"Не удалось завершить процесс: {e}")
-
-# Функция для завершения родительского процесса IDLE
-def kill_idle_process():
-    parent_pid = os.getppid()  # Получаем ID родительского процесса
-    os.kill(parent_pid, signal.SIGKILL)  # Убиваем процесс IDLE
-    print("Процесс IDLE завершен.")
 
 # Функция для работы с командами из local_message.txt
 def handle_shutdown_command():
@@ -81,10 +74,6 @@ def handle_shutdown_command():
         print("Данная функция пока не реализована.")
     else:
         print("Неизвестная команда завершения работы.")
-        return
-
-    # Завершение родительского процесса IDLE
-    kill_idle_process()
 
 # Запуск обработчика команды завершения
 handle_shutdown_command()

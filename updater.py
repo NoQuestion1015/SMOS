@@ -5,7 +5,7 @@ import shutil
 import playsound
 import subprocess
 import speech_recognition as sr
-import time
+import signal
 
 # Инициализация распознавателя
 recognizer = sr.Recognizer()
@@ -19,6 +19,11 @@ repository = "SMOS"
 
 # Путь к файлу cont_start_key.txt
 start_key_path = os.path.join(os.getcwd(), "config", "cont_start_key.txt")
+
+# Функция для завершения процесса IDLE
+def kill_idle_process():
+    parent_pid = os.getppid()  # Получаем ID родительского процесса
+    os.kill(parent_pid, signal.SIGKILL)  # Убиваем процесс IDLE
 
 # Функция для проверки и загрузки обновлений
 def check_for_updates(save_directory):
@@ -61,6 +66,7 @@ def check_for_updates(save_directory):
         new_version_file_path = os.path.join(extracted_folder, "config", "projectversion.txt")
         if not os.path.exists(new_version_file_path):
             print("Файл версии в скачанном проекте не найден.")
+            shutil.rmtree(save_directory)
             return
 
         # Чтение новой версии
@@ -71,6 +77,7 @@ def check_for_updates(save_directory):
         current_version_file_path = os.path.join(os.getcwd(), "config", "projectversion.txt")
         if not os.path.exists(current_version_file_path):
             print("Файл версии текущего проекта не найден.")
+            shutil.rmtree(save_directory)
             return
 
         with open(current_version_file_path, 'r') as file:
@@ -79,13 +86,22 @@ def check_for_updates(save_directory):
         # Сравнение версий
         if new_version == current_version:
             print("Обновление не требуется. Текущая версия актуальна.")
-            shutil.rmtree(save_directory)
+            # Запись True в cont_start_key.txt
+            with open(start_key_path, 'w') as file:
+                file.write("True")
+            shutil.rmtree(save_directory)  # Удаление папки с временными файлами
             print(f"Папка обновления удалена: {save_directory}")
+            kill_idle_process()  # Закрытие процесса после отмены обновления
         elif is_newer_version(new_version, current_version):
             print(f"Доступна новая версия: {new_version}. Текущая версия: {current_version}.")
             ask_for_update(save_directory, extracted_folder)
         else:
             print("Вы используете последнюю версию.")
+            # Запись True в cont_start_key.txt
+            with open(start_key_path, 'w') as file:
+                file.write("True")
+            shutil.rmtree(save_directory)  # Удаление папки с временными файлами
+            kill_idle_process()  # Закрытие процесса после отмены обновления
 
     except Exception as e:
         print(f"Ошибка при проверке обновлений: {e}")
@@ -126,8 +142,9 @@ def ask_for_update(save_directory, extracted_folder):
                         file.write("True")
                     playsound.playsound(os.path.join(os.getcwd(), "sound", "updatedelayed.mp3"))
                     print("Установка отложена.")
-                    shutil.rmtree(save_directory)
+                    shutil.rmtree(save_directory)  # Удаление папки с временными файлами
                     print(f"Папка обновления удалена: {save_directory}")
+                    kill_idle_process()  # Закрытие процесса после отмены обновления
                     break
 
     except Exception as e:
@@ -193,7 +210,7 @@ def install_update(save_directory, extracted_folder):
         print("Запуск новой версии...")
         subprocess.Popen(['python', 'start.py'])
         print("Новая версия запущена.")
-        exit()
+        kill_idle_process()  # Закрытие процесса после установки обновления
 
     except Exception as e:
         print(f"Ошибка при установке обновления: {e}")

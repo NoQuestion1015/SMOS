@@ -12,9 +12,9 @@ def initialize_database():
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS modules (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT,
-            filename TEXT PRIMARY KEY,
-            command TEXT,
+            filename TEXT,
             description TEXT,
             moduletype TEXT,
             modulenamefolder TEXT
@@ -28,6 +28,7 @@ def initialize_database():
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS active_modules (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             modulename TEXT,
             modulecommands TEXT,
             moduletype TEXT,
@@ -72,8 +73,8 @@ def activate_modules():
     cursor = conn.cursor()
 
     for module in modules:
-        modulename = module[0]
-        filename = module[1]
+        modulename = module[1]
+        filename = module[2]
         modulenamefolder = module[5]
         moduletype = module[4]
 
@@ -86,7 +87,6 @@ def activate_modules():
             print(f"Ошибка: Неизвестный тип модуля '{moduletype}' для модуля '{modulename}'.")
             continue
         
-        # Отладочные сообщения
         print(f"Проверяем папку модуля: {module_folder_path}")
         
         # Проверяем наличие папки модуля
