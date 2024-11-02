@@ -71,6 +71,10 @@ def recognize_speech():
     except sr.RequestError as e:
         print(f"Ошибка сервиса: {e}")
         return None
+    except TimeoutError:
+        print("Ошибка: превышено время ожидания.")
+        return None
+
 
 def check_for_system_keyword(text):
     """Проверяет, начинается ли запрос с кодового слова 'система' и записывает запрос системы в файл."""
@@ -110,7 +114,7 @@ def synthesize_speech(text: str):
 search_tool = DuckDuckGoSearchRun()
 new_tools = [search_tool, draw_banner]
 
-giga = GigaChat(credentials="ODZjNDQ0ZjEtNjYwYS00NzUzLTlkNjgtYjVjZTk2ZTRjYWQzOmFkMzE3MDAwLWI5ZmItNGJkYi1iNjNhLTMwYzNjNWRjYmM0MA==", scope="GIGACHAT_API_PERS", model="GigaChat", verify_ssl_certs=False)
+giga = GigaChat(credentials="ODZjNDQ0ZjEtNjYwYS00NzUzLTlkNjgtYjVjZTk2ZTRjYWQzOmViZDQyNWVkLTVlZTctNGVlNC05M2MzLWFhOTMzZGRmOWRmMg==", scope="GIGACHAT_API_PERS", model="GigaChat", verify_ssl_certs=False)
 
 agent = create_gigachat_functions_agent(giga, new_tools)
 
