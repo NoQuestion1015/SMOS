@@ -1,2 +1,5 @@
+updater.py
+modules_add.py
+modules_init.py
 systemos.py
 mainai.py

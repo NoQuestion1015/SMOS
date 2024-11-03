@@ -1,90 +1,117 @@
-import psutil
+import subprocess
 import os
+import time
+from playsound import playsound
 import signal
 
-# Функция для поиска корневой папки проекта
-def find_project_root(start_path):
-    current_path = start_path
+# Путь к папке с конфигурационными файлами
+config_folder = "config"
+sound_folder = "sound"
+modules_folder = "modules"
+system_modules_folder = "modules/system_modules"
+user_modules_folder = "modules/user_modules"
 
-    while True:
-        if os.path.basename(current_path) == 'SMOS':
-            print(f"Корневая папка 'SMOS' найдена: {current_path}")
-            return current_path
-        
-        parent_path = os.path.dirname(current_path)
-        if parent_path == current_path:
-            print("Корневая папка 'SMOS' не найдена.")
-            return None
-        
-        current_path = parent_path
+# Файлы ключа распознавания речи и состояния
+recognition_file = os.path.join(config_folder, "recognition_perm.txt")
+cont_start_key_file = os.path.join(config_folder, "cont_start_key.txt")
+active_process_file = os.path.join(config_folder, "activeprocessnow.txt")
 
-# Основная функция завершения процессов
-def terminate_idle_processes(target_files):
-    for process in psutil.process_iter(['pid', 'name', 'cmdline']):
-        try:
-            if process.info['name'] == 'idle':
-                cmdline = process.info['cmdline']
-                for file_name in target_files:
-                    if file_name in cmdline:
-                        os.kill(process.info['pid'], 9)
-                        print(f"Процесс IDLE с файлом {file_name} завершен.")
-                        break
-        except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
-            print(f"Не удалось завершить процесс: {e}")
+# Список папок и файлов для создания
+folders_to_create = [
+    config_folder,
+    sound_folder,
+    modules_folder,
+    system_modules_folder,
+    user_modules_folder,
+]
 
-# Функция для завершения родительского процесса IDLE
+files_to_create = {
+    recognition_file: "ai",  # Изначальное содержимое
+    cont_start_key_file: "",  # Пустое содержимое
+    active_process_file: "",  # Пустое содержимое
+}
+
+# Функция для создания папок
+def create_folders(folders):
+    for folder in folders:
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+
+# Функция для создания файлов и записи в них содержимого
+def create_or_clear_files(files):
+    for file_path, initial_content in files.items():
+        with open(file_path, 'w') as f:  # Открываем файл в режиме записи (очищает файл)
+            if initial_content is not None:
+                f.write(initial_content)
+
+# Проверка и создание папок и файлов
+create_folders(folders_to_create)
+create_or_clear_files(files_to_create)
+
+# Проигрываем звуки
+playsound(os.path.join(sound_folder, "systemstartedsound.mp3"))
+playsound(os.path.join(sound_folder, "systemstarted.mp3"))
+
+# Путь к скриптам
+mainai = "mainai.py"
+systemos = "systemos.py"
+moduleadd = "modules_add.py"
+moduleinit = "modules_init.py"
+updateproject = "updater.py"
+
+# Функция для записи активных процессов
+def log_active_process(script_name):
+    with open(active_process_file, 'a') as f:  # Открываем в режиме добавления
+        f.write(f"{script_name}\n")
+
+# Запуск скрипта обновления проекта
+updateproject_start = subprocess.Popen(['idle', '-r', updateproject])
+log_active_process(updateproject)
+
+# Функция для проверки файла cont_start_key.txt
+def check_start_key():
+    with open(cont_start_key_file, 'r') as f:
+        return f.read().strip()
+
+# Функция для завершения процесса IDLE
 def kill_idle_process():
     parent_pid = os.getppid()  # Получаем ID родительского процесса
     os.kill(parent_pid, signal.SIGKILL)  # Убиваем процесс IDLE
-    print("Процесс IDLE завершен.")
 
-# Функция для работы с командами из local_message.txt
-def handle_shutdown_command():
-    # Получение пути к local_message.txt
-    script_directory = os.path.dirname(__file__)
-    project_path = find_project_root(script_directory)
-    if not project_path:
-        print("Не удалось найти корневую папку 'SMOS'. Завершение работы.")
-        return
+# Цикл проверки файла на ключ запуска
+while True:
+    key = check_start_key()
+    
+    if key == "True":
+        print("Ключ True обнаружен, продолжаем запуск...")
+        
+        # Запуск остальных скриптов
+        moduleadd_start = subprocess.Popen(['idle', '-r', moduleadd])
+        log_active_process(moduleadd)
+        time.sleep(10)
+        
+        moduleinit_start = subprocess.Popen(['idle', '-r', moduleinit])
+        log_active_process(moduleinit)
+        time.sleep(5)
+        
+        systemos_start = subprocess.Popen(['idle', '-r', systemos])
+        log_active_process(systemos)
+        
+        mainai_start = subprocess.Popen(['idle', '-r', mainai])
+        log_active_process(mainai)
 
-    # Путь к файлу команд и к файлу с активными процессами
-    message_path = os.path.join(project_path, 'modules', 'local_message.txt')
-    config_path = os.path.join(project_path, 'config', 'activeprocessnow.txt')
+        # Закрытие отработанных модулей
+        time.sleep(5)
+        moduleadd_start.terminate()
+        moduleinit_start.terminate()
+        
+        print("Основной ИИ запущен.")
+        kill_idle_process()  # Завершаем процесс IDLE после завершения
+        break  # Выходим из цикла, так как работа завершена
+    
+    elif key == "False":
+        print("Ключ False обнаружен, завершаем работу.")
+        kill_idle_process()  # Завершаем процесс IDLE
+        break  # Выходим из цикла, так как процесс завершен
 
-    # Команды для разных типов завершения работы
-    standard_shutdown_commands = {
-        "выключить систему", "выключение", "выключение системы",
-        "завершение работы", "завершить работу"
-    }
-    not_implemented_shutdown_commands = {
-        "выключить компьютер", "выключение компьютера", "отключить компьютер"
-    }
-
-    # Чтение команды из файла local_message.txt
-    try:
-        with open(message_path, 'r') as file:
-            command = file.read().strip()
-    except FileNotFoundError:
-        print(f"Файл {message_path} не найден.")
-        return
-
-    # Обработка команды
-    if command in standard_shutdown_commands:
-        try:
-            with open(config_path, 'r') as file:
-                target_files = [file_name.strip() for file_name in file.readlines()]
-            print(f"Файлы для завершения: {target_files}")
-            terminate_idle_processes(target_files)
-        except FileNotFoundError:
-            print(f"Файл {config_path} не найден.")
-    elif command in not_implemented_shutdown_commands:
-        print("Данная функция пока не реализована.")
-    else:
-        print("Неизвестная команда завершения работы.")
-        return
-
-    # Завершение родительского процесса IDLE
-    kill_idle_process()
-
-# Запуск обработчика команды завершения
-handle_shutdown_command()
+    time.sleep(1)  # Задержка между проверками файла состояния
